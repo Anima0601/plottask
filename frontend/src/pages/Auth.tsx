@@ -3,6 +3,8 @@ import SignUpComponent from "../component/SignUpComponent";
 import api from "../utils/api";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppDispatch } from "../store/hook";
+import { loginUser } from "../store/slices/authSlice";
 
 const Auth = () => {
   interface FormData {
@@ -17,6 +19,7 @@ const Auth = () => {
   }
 
   const navigate = useNavigate();
+  const dispatch = useAppDispatch()
   const [isSignIn, setIsSignIn] = useState<boolean>(true);
 
   const handleLogin = async (formData: FormData) => {
@@ -24,11 +27,10 @@ const Auth = () => {
       return alert("Form Incomplete");
     }
     try {
-      const res = await api.post("/auth/login", formData);
-      alert(res.data.message);
+     await dispatch(loginUser(formData)).unwrap();
       navigate("/home");
-    } catch (error: any) {
-      alert(error?.response?.data?.message);
+    } catch (error) {
+      console.log(error);
     }
   };
 

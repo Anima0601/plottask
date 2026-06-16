@@ -47,12 +47,12 @@ export const loginUser = async (req, res) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({message:"Not registered user"});
+      return res.status(400).json({ message: "Not registered user" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({message:"Incorrect Password"});
+      return res.status(400).json({ message: "Incorrect Password" });
     }
 
     res.cookie("token", generateToken(user._id), {
@@ -76,14 +76,16 @@ export const loginUser = async (req, res) => {
 };
 
 export const getProfile = async (req, res) => {
-  try{
-    const project = await Project.find().populate("member","name email");
-    const filteredProjects = project.filter((proj)=>proj.member.some((m)=>m._id.toString()===req.user._id.toString()));
-    res.status(200).json({"message":filteredProjects,"user":req.user});
-
-    
-  }catch(error){
-    return res.status(500).json({"message":error.message});
+  try {
+    res.status(200).json({
+      user: {
+        id: req.user._id,
+        email: req.user.email,
+        role: req.user.role,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
 
