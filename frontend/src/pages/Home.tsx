@@ -1,19 +1,10 @@
 import { useEffect, useState } from "react";
 import Dashboard from "../component/Dashboard";
 import Projects from "../component/Projects";
-import Navbar from "../component/Navbar"; 
+import Navbar from "../component/Navbar";
 import api from "../utils/api";
-
-interface Project {
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  startDate: string;
-  endDate: string;
-  visibility: string;
-  createdBy: string;
-}
+import { useAppDispatch, useAppSelector } from "../store/hook";
+import { getProjects } from "../store/slices/projectSlice";
 
 interface Stats {
   totalProjects: number;
@@ -25,14 +16,15 @@ interface Stats {
 }
 
 const Home = () => {
-  const [projectResponse, setProjectResponse] = useState<Project[]>([]);
   const [statsResponse, setStatsResponse] = useState<Stats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-
+  const { projects } = useAppSelector((state) => state.project);
+  const dispatch = useAppDispatch();
   useEffect(() => {
+    dispatch(getProjects());
     const callResponse = async () => {
       try {
-        await Promise.all([handleProject(), handleStats()]);
+        handleStats();
       } catch (error) {
         console.log(error);
       } finally {
@@ -41,15 +33,6 @@ const Home = () => {
     };
     callResponse();
   }, []);
-
-  const handleProject = async () => {
-    try {
-      const res = await api.get("/project");
-      setProjectResponse(res.data.projects);
-    } catch (error: any) {
-      console.log(error?.response?.data?.message);
-    }
-  };
 
   const handleStats = async () => {
     try {
@@ -89,7 +72,7 @@ const Home = () => {
             <Dashboard stats={statsResponse} />
 
             {/* Project List Grid Block */}
-            <Projects projects={projectResponse} />
+            <Projects projects={projects} />
           </div>
         )}
       </main>
