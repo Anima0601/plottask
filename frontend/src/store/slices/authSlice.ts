@@ -4,6 +4,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 interface User {
   id: string;
+  name:string;
   email: string;
   role: string;
 }
@@ -43,6 +44,11 @@ export const getCurrentUser = createAsyncThunk(
   },
 );
 
+export const logoutUser = createAsyncThunk("auth/logoutUser", async () => {
+  const res = await api.post("/auth/logout");
+  return res.data;
+});
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -80,6 +86,20 @@ const authSlice = createSlice({
         state.loading = false;
         state.isAuthenticated = false;
         state.user = null;
+        state.error = action.error.message || null;
+      })
+      .addCase(logoutUser.pending, (state) => {
+        state.error = null;
+        state.loading = true;
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.error = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+        state.user = null;
+      })
+      .addCase(logoutUser.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.error.message || null;
       });
   },

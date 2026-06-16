@@ -66,6 +66,7 @@ export const loginUser = async (req, res) => {
       message: "Login successful",
       user: {
         id: user._id,
+        name: user.name,
         email: user.email,
         role: user.role,
       },
@@ -80,6 +81,7 @@ export const getProfile = async (req, res) => {
     res.status(200).json({
       user: {
         id: req.user._id,
+        name: req.user.name,
         email: req.user.email,
         role: req.user.role,
       },
