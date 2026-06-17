@@ -1,4 +1,6 @@
+import { useNavigate } from "react-router-dom";
 interface Project {
+  _id: string;
   title: string;
   description: string;
   status: string;
@@ -14,7 +16,7 @@ interface projectProp {
 }
 
 const Projects = ({ projects }: projectProp) => {
-  // Helper functions for matching badge design tokens dynamically
+  const navigate = useNavigate();
   const getPriorityStyle = (priority: string) => {
     switch (priority?.toLowerCase()) {
       case "high":
@@ -57,9 +59,10 @@ const Projects = ({ projects }: projectProp) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {projects.map((proj, index) => (
+          {projects.map((proj) => (
             <div
-              key={index}
+              key={proj._id}
+              onClick={() => navigate(`/projects/${proj._id}`)}
               className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-hover hover:shadow-md"
             >
               <div>

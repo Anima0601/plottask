@@ -4,12 +4,14 @@ import { useEffect } from "react";
 import Hero from "./pages/Hero";
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
+import ProjectDetail from "./pages/ProjectDetail";
+import TaskDetail from "./pages/TaskDetail";
 
 import { useAppDispatch } from "./store/hook";
 import { getCurrentUser } from "./store/slices/authSlice";
 
-import ProtectedRoute from "./component/ProtectedRoute";
-import PublicRoute from "./component/PublicRoute";
+import ProtectedRoute from "./component/RoutesComponent/ProtectedRoute";
+import PublicRoute from "./component/RoutesComponent/PublicRoute";
 
 const App = () => {
   const dispatch = useAppDispatch();
@@ -43,6 +45,24 @@ const App = () => {
         element={
           <ProtectedRoute>
             <Home />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/projects/:projectId"
+        element={
+          <ProtectedRoute>
+            <ProjectDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/tasks/:taskId"
+        element={
+          <ProtectedRoute>
+            <TaskDetail />
           </ProtectedRoute>
         }
       />

@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
-import { useAppSelector } from "../store/hook";
 import { Navigate } from "react-router-dom";
+import { useAppSelector } from "../../store/hook";
 
-interface childrenProps {
+interface ProtectedRouteProps {
   children: ReactNode;
 }
 
-function PublicRoute({ children }: childrenProps) {
-  const { isAuthenticated, loading } = useAppSelector((state) => state.auth);
+function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const { loading, isAuthenticated } = useAppSelector((state) => state.auth);
 
   if (loading) {
     return (
@@ -22,10 +22,10 @@ function PublicRoute({ children }: childrenProps) {
           {/* Supporting Text */}
           <div className="text-center">
             <p className="text-sm font-semibold text-slate-800">
-              Checking auth session...
+              Verifying session...
             </p>
             <p className="text-xs text-slate-400 mt-0.5">
-              Preparing your entry environment.
+              Securing your PlotTask workspace.
             </p>
           </div>
         </div>
@@ -33,11 +33,11 @@ function PublicRoute({ children }: childrenProps) {
     );
   }
 
-  if (isAuthenticated) {
-    return <Navigate to="/home" replace />;
-  } else {
-    return <>{children}</>;
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
   }
+
+  return <>{children}</>;
 }
 
-export default PublicRoute;
+export default ProtectedRoute;

@@ -4,41 +4,28 @@ import { logActivity } from "../utils/activityLogger.js";
 
 export const createTask = async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      project,
-      assignee,
-      status,
-      priority,
-      dueDate,
-    } = req.body;
+    const { title, description, project, assignee, status, priority, dueDate } =
+      req.body;
 
-    const uploadedFiles = req.files?.map((file)=>({
-      fileName:
-      file.originalname,
-      fileUrl:
-      file.path,
-      uploadedAt:new Date(),
+    const uploadedFiles = req.files?.map((file) => ({
+      fileName: file.originalname,
+      fileUrl: file.path,
+      uploadedAt: new Date(),
     }));
 
+    const projectData = await Project.findById(project);
 
-    const projectData =
-  await Project.findById(project);
+    if (!projectData) {
+      return res.status(404).json({
+        message: "Project not found",
+      });
+    }
 
-      if (!projectData) {
-         return res.status(404).json({
-          message:
-         "Project not found",
-            });
-       }
-
-      if (assignee &&!projectData.member.includes(assignee )) {
-         return res.status(400).json({
-            message:
-            "Assignee not part of project",
-              });
-            }
+    if (assignee && !projectData.member.includes(assignee)) {
+      return res.status(400).json({
+        message: "Assignee not part of project",
+      });
+    }
 
     const task = await Task.create({
       title,
@@ -48,7 +35,7 @@ export const createTask = async (req, res) => {
       status,
       priority,
       dueDate,
-      attachments:uploadedFiles,
+      attachments: uploadedFiles,
       createdBy: req.user._id,
     });
 
@@ -69,9 +56,10 @@ export const createTask = async (req, res) => {
       });
     }
 
-
-    res.status(201).json({ success: true, message: "Task created successfully", task });
-  } catch(error) {
+    res
+      .status(201)
+      .json({ success: true, message: "Task created successfully", task });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
@@ -135,12 +123,25 @@ export const getTasks = async (req, res) => {
 export const getTaskById = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
-      .populate("project", "title")
+      .populate("project", "title member")
       .populate("assignee", "name email")
       .populate("createdBy", "name email");
     if (!task) {
       return res.status(404).json({ message: "Task Not Found" });
     }
+    const isMember = task.project.member.some(
+      (member) => member.toString() === req.user._id.toString(),
+    );
+
+    const isCreator =
+      task.project.createdBy?.toString() === req.user._id.toString();
+
+    if (!isMember && !isCreator && req.user.role !== "admin") {
+      return res.status(403).json({
+        message: "Access denied",
+      });
+    }
+
     res.status(200).json(task);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -162,20 +163,19 @@ export const updateTask = async (req, res) => {
       });
     }
 
-    const uploadedFiles = req.files?.map((file)=>({
-      fileName:
-      file.originalname,
-      fileUrl:
-      file.path,
-      uploadedAt:new Date(),
-    }))||[];
+    const uploadedFiles =
+      req.files?.map((file) => ({
+        fileName: file.originalname,
+        fileUrl: file.path,
+        uploadedAt: new Date(),
+      })) || [];
 
     const oldStatus = task.status;
     const oldAssignee = task.assignee?.toString();
 
-    Object.assign(task,req.body);
+    Object.assign(task, req.body);
 
-    if(uploadedFiles.length>0){
+    if (uploadedFiles.length > 0) {
       task.attachments.push(...uploadedFiles);
     }
 
@@ -205,7 +205,6 @@ export const updateTask = async (req, res) => {
         message: `You have been assigned task "${task.title}"`,
       });
     }
-
 
     res.status(200).json(task);
   } catch (error) {

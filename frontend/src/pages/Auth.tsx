@@ -1,5 +1,5 @@
-import LoginComponent from "../component/LoginComponent";
-import SignUpComponent from "../component/SignUpComponent";
+import LoginComponent from "../component/AuthComponents/LoginComponent";
+import SignUpComponent from "../component/AuthComponents/SignUpComponent";
 import api from "../utils/api";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";

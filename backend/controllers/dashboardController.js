@@ -38,3 +38,67 @@ export const getDashboardStats = async (req, res) => {
     });
   }
 };
+
+export const getMyStats = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const [
+      assignedProjects,
+      assignedTasks,
+      pendingTasks,
+      inProgressTasks,
+      reviewTasks,
+      completedTasks,
+      overdueTasks,
+    ] = await Promise.all([
+      Project.countDocuments({
+        member: userId,
+      }),
+
+      Task.countDocuments({
+        assignee: userId,
+      }),
+
+      Task.countDocuments({
+        assignee: userId,
+        status: "todo",
+      }),
+
+      Task.countDocuments({
+        assignee: userId,
+        status: "in-progress",
+      }),
+
+      Task.countDocuments({
+        assignee: userId,
+        status: "review",
+      }),
+
+      Task.countDocuments({
+        assignee: userId,
+        status: "done",
+      }),
+
+      Task.countDocuments({
+        assignee: userId,
+        dueDate: { $lt: new Date() },
+        status: { $ne: "done" },
+      }),
+    ]);
+
+    return res.status(200).json({
+      assignedProjects,
+      assignedTasks,
+      pendingTasks,
+      inProgressTasks,
+      reviewTasks,
+      completedTasks,
+      overdueTasks,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
