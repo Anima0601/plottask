@@ -6,6 +6,7 @@ import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 import ProjectDetail from "./pages/ProjectDetail";
 import TaskDetail from "./pages/TaskDetail";
+import CreateProject from "./pages/CreateProject";
 
 import { useAppDispatch } from "./store/hook";
 import { getCurrentUser } from "./store/slices/authSlice";
@@ -63,6 +64,15 @@ const App = () => {
         element={
           <ProtectedRoute>
             <TaskDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/projects/create"
+        element={
+          <ProtectedRoute>
+            <CreateProject />
           </ProtectedRoute>
         }
       />

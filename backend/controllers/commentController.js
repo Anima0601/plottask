@@ -47,16 +47,28 @@ export const addComment = async (req, res) => {
       action: "Added Comment",
     });
 
-    if (task.assignee && task.assignee.toString() !== req.user._id.toString()) {
-      await Notification.create({
-        user: task.assignee,
-        project: task.project,
-        task: task._id,
-        title: "New Comment",
-        message: `${req.user.name} commented on "${task.title}"`,
-      });
-    }
+  const recipients = new Set();
 
+  project.member.forEach((memberId) => {
+    if (memberId.toString() !== req.user._id.toString()) {
+      recipients.add(memberId.toString());
+    }
+  });
+
+  if (project.createdBy.toString() !== req.user._id.toString()) {
+    recipients.add(project.createdBy.toString());
+  }
+
+  for (const userId of recipients) {
+    await Notification.create({
+      user: userId,
+      project: task.project,
+      task: task._id,
+      title: "New Comment",
+      message: `${req.user.name} commented on "${task.title}"`,
+    });
+
+  }
     const populatedComment = await Comment.findById(comment._id).populate(
       "user",
       "name email role",
@@ -66,7 +78,7 @@ export const addComment = async (req, res) => {
       success: true,
       message: "Comment added successfully",
       comment: populatedComment,
-    });
+    }); 
   } catch (error) {
     res.status(500).json({
       message: error.message,

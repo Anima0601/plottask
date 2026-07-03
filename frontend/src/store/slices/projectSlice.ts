@@ -51,6 +51,18 @@ export const getProjects = createAsyncThunk("project/getProjects", async () => {
   return res.data.projects;
 });
 
+export const createProject = createAsyncThunk(
+  "project/createProject",
+  async (formData: FormData, { rejectWithValue }) => {
+    try {
+      const res = await api.post("/project", formData);
+      return res.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response.data.message);
+    }
+  },
+);
+
 const projectSlice = createSlice({
   name: "project",
   initialState,
@@ -68,8 +80,21 @@ const projectSlice = createSlice({
       })
       .addCase(getProjects.rejected, (state, action) => {
         state.loading = false;
-        state.projects = []; 
+        state.projects = [];
         state.error = action.error.message || null;
+      })
+      .addCase(createProject.pending, (state) => {
+        state.loading = true;
+      })
+
+      .addCase(createProject.fulfilled, (state, action) => {
+        state.loading = false;
+        state.projects.unshift(action.payload);
+      })
+
+      .addCase(createProject.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });

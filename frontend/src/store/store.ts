@@ -3,12 +3,16 @@ import authReducer from "./slices/authSlice";
 import projectReducer from "./slices/projectSlice";
 import taskReducer from "./slices/taskSlice";
 import commentReducer from "./slices/commentSlice";
+import userReducer from "./slices/userSlice";
+import notificationReducer from "./slices/notificationSlice";
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     project: projectReducer,
     task: taskReducer,
     comment: commentReducer,
+    user: userReducer,
+    notification: notificationReducer,
   },
 });
 

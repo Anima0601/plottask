@@ -1,5 +1,5 @@
 import { useAppDispatch } from "../store/hook";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getTaskById } from "../store/slices/taskSlice";
 import { useAppSelector } from "../store/hook";
@@ -7,17 +7,14 @@ import TaskDescription from "../component/TaskDetailComponents/TaskDescription";
 import Navbar from "../component/Navbar";
 import Comments from "../component/TaskDetailComponents/Comments";
 import { getComments } from "../store/slices/commentSlice";
+import api from "../utils/api";
+import ActivityLogs from "../component/TaskDetailComponents/ActivityLogs";
 
 const TaskDetail = () => {
   const dispatch = useAppDispatch();
   const { taskId } = useParams();
-
-  useEffect(() => {
-    if (taskId) {
-      dispatch(getTaskById(taskId));
-      dispatch(getComments(taskId));
-    }
-  }, [dispatch, taskId]);
+  const [activities, setActivities] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   const { selectedTask, loading, error } = useAppSelector(
     (state) => state.task,
@@ -26,7 +23,31 @@ const TaskDetail = () => {
     (state) => state.comment,
   );
 
-  // 1. Full-Page Loading Placeholder Shimmer
+  useEffect(() => {
+    if (taskId) {
+      dispatch(getTaskById(taskId));
+      dispatch(getComments(taskId));
+    }
+  }, [dispatch, taskId]);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      if (!selectedTask?.project?._id) return;
+      try {
+        setActivityLoading(true);
+        const res = await api.get(
+          `/activities/project/${selectedTask.project._id}`,
+        );
+        setActivities(res.data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setActivityLoading(false);
+      }
+    };
+    fetchActivities();
+  }, [selectedTask]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 font-sans antialiased">
@@ -48,7 +69,6 @@ const TaskDetail = () => {
     );
   }
 
-  // 2. 🔒 Access Guard Page: Triggers when backend intercepts non-member requests
   if (error === "Access denied") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans antialiased px-4">
@@ -56,7 +76,6 @@ const TaskDetail = () => {
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 border border-rose-100 text-xl shadow-sm">
             🔒
           </div>
-
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-slate-900 tracking-tight">
               Access Restricted
@@ -66,7 +85,6 @@ const TaskDetail = () => {
               not have operational clearance to view this task card.
             </p>
           </div>
-
           <button
             onClick={() => window.history.back()}
             className="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-sm shadow-indigo-100 hover:bg-indigo-500 transition-all active:scale-[0.98]"
@@ -78,7 +96,6 @@ const TaskDetail = () => {
     );
   }
 
-  // 3. Fallback Resource Null Pointer Card Check
   if (!selectedTask) {
     return (
       <div className="min-h-screen bg-slate-50 font-sans antialiased">
@@ -101,15 +118,18 @@ const TaskDetail = () => {
   return (
     <div className="min-h-screen bg-slate-50 font-sans antialiased">
       <Navbar />
-
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="space-y-6">
-          {/* Main Task Meta Details Panel Block */}
+          {/* Main Layout containing Title, Description, and Sidebar properties */}
           <TaskDescription selectedTask={selectedTask} />
 
-          {/* Activity Comments Segment synced cleanly beneath description layout box bounds */}
+          {/* 🛠️ UI CORRECTION: Activity blocks nested to follow the 8-column main container format */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-8">
+            <div className="lg:col-span-8 space-y-6">
+              {/* Activity Component Section */}
+              <ActivityLogs activities={activities} loading={activityLoading} />
+
+              {/* Comments Feed Section */}
               <Comments
                 taskId={taskId!}
                 comments={comments}

@@ -31,7 +31,7 @@ const Comments = ({ taskId, comments, loading }: CommentsProps) => {
       {/* Header section with Counter pill */}
       <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
-          Activity & Comments
+          Comments
         </h3>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
           {comments?.length || 0}

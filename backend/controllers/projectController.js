@@ -1,5 +1,6 @@
 import Project from "../models/Project.js";
 import { logActivity } from "../utils/activityLogger.js";
+import Notification from "../models/Notification.js";
 export const createProject = async (req, res) => {
   try {
     const {
@@ -12,6 +13,9 @@ export const createProject = async (req, res) => {
       endDate,
       visibility,
     } = req.body;
+
+    console.log(req.body);
+    console.log(req.body.member);
 
     const uploadFiles =
       req.files?.map((file) => ({
@@ -39,10 +43,23 @@ export const createProject = async (req, res) => {
       action: `Created Project: ${project.title}`,
     });
 
+    if (project.member?.length) {
+      await Notification.insertMany(
+        project.member
+          .filter((memberId) => memberId.toString() !== req.user._id.toString())
+          .map((memberId) => ({
+            user: memberId,
+            project: project._id,
+            title: "Added to Project",
+            message: `${req.user.name} added you to project "${project.title}"`,
+          })),
+      );
+    }
+
     res.status(201).json({
-      "success": true,
-      "message": "Project created successfully",
-      "project":project,
+      success: true,
+      message: "Project created successfully",
+      project: project,
     });
   } catch (error) {
     res.status(500).json({
@@ -55,6 +72,7 @@ export const createProject = async (req, res) => {
 export const getProjects = async (req, res) => {
   try {
     const query = {};
+
     if (req.query.search) {
       query.title = {
         $regex: req.query.search,
@@ -70,13 +88,29 @@ export const getProjects = async (req, res) => {
       query.priority = req.query.priority;
     }
 
+    if (req.query.createdBy) {
+      query.createdBy = req.query.createdBy;
+    }
+
     if (req.query.visibility) {
       query.visibility = req.query.visibility;
     }
 
-    if (req.query.createdBy) {
-      query.createdBy = req.query.createdBy;
-    }
+    query.$or = [
+      {
+        visibility: "public",
+      },
+      {
+        visibility: "team",
+      },
+      {
+        visibility: "private",
+        member: req.user._id,
+      },
+      {
+        createdBy: req.user._id,
+      },
+    ];
 
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
@@ -156,6 +190,16 @@ export const updateProject = async (req, res) => {
         action: `Changed Project Status from ${oldStatus} to ${project.status}`,
       });
       isActivityLogged = true;
+      await Notification.insertMany(
+        project.member
+          .filter((memberId) => memberId.toString() !== req.user._id.toString())
+          .map((memberId) => ({
+            user: memberId,
+            project: project._id,
+            title: "Project Status Updated",
+            message: `${req.user.name} changed project status to "${project.status}"`,
+          })),
+      );
     }
 
     if (req.body.priority && oldPriority !== project.priority) {
@@ -165,6 +209,16 @@ export const updateProject = async (req, res) => {
         action: `Changed Project Priority from ${oldPriority} to ${project.priority}`,
       });
       isActivityLogged = true;
+      await Notification.insertMany(
+        project.member
+          .filter((memberId) => memberId.toString() !== req.user._id.toString())
+          .map((memberId) => ({
+            user: memberId,
+            project: project._id,
+            title: "Project Priority Updated",
+            message: `${req.user.name} changed project priority to "${project.priority}"`,
+          })),
+      );
     }
 
     if (req.body.visibility && oldVisibility !== project.visibility) {
@@ -174,6 +228,16 @@ export const updateProject = async (req, res) => {
         action: `Changed Project Visibility from ${oldVisibility} to ${project.visibility}`,
       });
       isActivityLogged = true;
+      await Notification.insertMany(
+        project.member
+          .filter((memberId) => memberId.toString() !== req.user._id.toString())
+          .map((memberId) => ({
+            user: memberId,
+            project: project._id,
+            title: "Project Visibility Updated",
+            message: `${req.user.name} changed project visibility to "${project.visibility}"`,
+          })),
+      );
     }
 
     if (!isActivityLogged) {

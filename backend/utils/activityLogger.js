@@ -7,12 +7,14 @@ export const logActivity = async ({
   action,
 }) => {
   try {
-    await Activity.create({
+    const activity = await Activity.create({
       project,
       task,
       user,
       action,
     });
+
+  
   } catch (error) {
     console.error("Activity Log Error:", error);
   }
