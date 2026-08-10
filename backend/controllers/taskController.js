@@ -1,5 +1,6 @@
 import Project from "../models/Project.js";
 import Task from "../models/Task.js";
+import Notification from "../models/Notification.js";
 import { logActivity } from "../utils/activityLogger.js";
 
 export const createTask = async (req, res) => {
@@ -21,12 +22,14 @@ export const createTask = async (req, res) => {
       });
     }
 
-    if (assignee && !projectData.member.includes(assignee)) {
+    if (
+      assignee &&
+      !projectData.member.some((member) => member.toString() === assignee)
+    ) {
       return res.status(400).json({
         message: "Assignee not part of project",
       });
     }
-
     const task = await Task.create({
       title,
       description,
@@ -46,14 +49,18 @@ export const createTask = async (req, res) => {
       action: `Created Task: ${task.title}`,
     });
 
-    if (assignee) {
-      await Notification.create({
-        user: assignee,
-        project: project,
-        task: task._id,
-        title: "Task Assigned",
-        message: `You have been assigned task "${title}"`,
-      });
+    try {
+      if (assignee) {
+        await Notification.create({
+          user: assignee,
+          project,
+          task: task._id,
+          title: "Task Assigned",
+          message: `You have been assigned task "${title}"`,
+        });
+      }
+    } catch (err) {
+      console.error("Notification creation failed:", err);
     }
 
     res
@@ -157,7 +164,10 @@ export const updateTask = async (req, res) => {
 
     const projectData = await Project.findById(task.project);
 
-    if (req.body.assignee && !projectData.member.includes(req.body.assignee)) {
+    if (
+      assignee &&
+      !projectData.member.some((member) => member.toString() === assignee)
+    ) {
       return res.status(400).json({
         message: "Assignee not part of project",
       });

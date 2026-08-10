@@ -47,6 +47,24 @@ const initialState: TaskState = {
   error: null,
 };
 
+export const createTask = createAsyncThunk<
+  Task,
+  FormData,
+  { rejectValue: string }
+>("task/createTask", async (taskData, { rejectWithValue }) => {
+  try {
+    const res = await api.post("/task", taskData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return res.data.task;
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.message);
+  }
+});
+
 export const getTask = createAsyncThunk<Task[]>("task/getTask", async () => {
   const res = await api.get("/task");
   return res.data.tasks;
@@ -94,6 +112,18 @@ const taskSlice = createSlice({
       .addCase(getTaskById.rejected, (state, action) => {
         state.loading = false;
         state.selectedTask = null;
+        state.error = action.payload as string;
+      })
+      .addCase(createTask.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createTask.fulfilled, (state, action) => {
+        state.loading = false;
+        state.tasks.push(action.payload);
+      })
+      .addCase(createTask.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload as string;
       });
   },
