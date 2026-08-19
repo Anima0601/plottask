@@ -49,7 +49,7 @@ export const addComment = createAsyncThunk<
 export const deleteComment = createAsyncThunk<string, string>(
   "comment/deleteComment",
   async (commentId: string) => {
-    await api.delete(`/comment/${commentId}`);
+    await api.delete(`/comments/${commentId}`);
 
     return commentId;
   },

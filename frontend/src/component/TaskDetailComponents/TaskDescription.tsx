@@ -1,4 +1,8 @@
-import type { ReactNode } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../../store/hook";
+import { deleteTask } from "../../store/slices/taskSlice";
+import { useToast } from "../../context/ToastContext"; // Adjust path to match your ToastContext
 
 export interface User {
   _id: string;
@@ -37,6 +41,18 @@ interface TaskProps {
 }
 
 const TaskDescription = ({ selectedTask }: TaskProps) => {
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const { user } = useAppSelector((state) => state.auth);
+  const { loading } = useAppSelector((state) => state.task);
+
+  const isAdmin = user?.role === "admin";
+
   const assignee =
     typeof selectedTask.assignee === "string"
       ? selectedTask.assignee
@@ -47,7 +63,29 @@ const TaskDescription = ({ selectedTask }: TaskProps) => {
       ? selectedTask.createdBy
       : selectedTask.createdBy?.name || "Unknown";
 
-  // Safe formatting utility for dates
+  const confirmDeleteTask = async () => {
+    try {
+      setIsDeleting(true);
+
+      await dispatch(deleteTask(selectedTask._id)).unwrap();
+      toast("Task deleted successfully!", "success");
+
+      setIsDeleteModalOpen(false);
+
+      setTimeout(() => {
+        navigate(`/projects/${selectedTask.project._id}`);
+      }, 500);
+    } catch (error) {
+      toast(
+        typeof error === "string" ? error : "Failed to delete task",
+        "error",
+      );
+      console.error("Delete task failed:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return "None";
     const d = new Date(dateString);
@@ -60,7 +98,6 @@ const TaskDescription = ({ selectedTask }: TaskProps) => {
         });
   };
 
-  // Jira Color Token Mapping Mappers
   const getStatusColor = () => {
     switch (selectedTask.status) {
       case "done":
@@ -87,22 +124,38 @@ const TaskDescription = ({ selectedTask }: TaskProps) => {
 
   return (
     <div className="mx-auto max-w-7xl bg-slate-50 font-sans antialiased p-4 sm:p-6 lg:p-8">
-      {/* Upper Context Breadcrumbs Bar */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-4 text-xs">
+      {/* Upper Context Breadcrumbs Bar with Delete Control */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4 text-xs border-b border-slate-200/80 pb-4">
         <div className="flex items-center gap-2 text-slate-400 font-medium">
-          <span>{selectedTask.project.title}</span>
+          <span
+            className="cursor-pointer hover:text-slate-600 transition-colors"
+            onClick={() => navigate(`/projects/${selectedTask.project._id}`)}
+          >
+            {selectedTask.project.title}
+          </span>
           <span>/</span>
-          <span className="text-slate-600 font-semibold">
+          <span className="text-slate-600 font-semibold truncate max-w-[280px]">
             {selectedTask.title}
           </span>
         </div>
+
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setIsDeleteModalOpen(true)}
+            disabled={loading || isDeleting}
+            className="cursor-pointer rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+          >
+            {isDeleting ? "Deleting..." : "Delete Task"}
+          </button>
+        )}
       </div>
 
-      {/* Two-Column Jira Workspace Interface Grid */}
+      {/* Two-Column Workspace Grid */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         {/* LEFT COMPONENT: Core Ticket Context Info (8 Columns) */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-2xs space-y-6">
             {/* Ticket Header Title */}
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight sm:text-3xl leading-snug">
               {selectedTask.title}
@@ -114,7 +167,7 @@ const TaskDescription = ({ selectedTask }: TaskProps) => {
                 Description
               </h3>
               <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-4 min-h-[120px]">
-                <p className="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
+                <p className="text-xs leading-relaxed text-slate-700 whitespace-pre-wrap">
                   {selectedTask.description ||
                     "No summary overview descriptive context filled for this ticket."}
                 </p>
@@ -123,7 +176,7 @@ const TaskDescription = ({ selectedTask }: TaskProps) => {
           </div>
 
           {/* Attachments Display Section */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-2xs space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Attachments ({selectedTask.attachments?.length || 0})
             </h3>
@@ -143,9 +196,8 @@ const TaskDescription = ({ selectedTask }: TaskProps) => {
                     className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 hover:bg-slate-50/60 transition-all group"
                   >
                     <div className="flex items-center gap-2.5 overflow-hidden pr-2">
-                      {/* Technical Attachment Icon Clip */}
                       <svg
-                        className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-indigo-500"
+                        className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-indigo-500 transition-colors"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -158,7 +210,7 @@ const TaskDescription = ({ selectedTask }: TaskProps) => {
                         />
                       </svg>
                       <div className="truncate">
-                        <p className="text-xs font-semibold text-slate-700 truncate group-hover:text-indigo-600">
+                        <p className="text-xs font-semibold text-slate-700 truncate group-hover:text-indigo-600 transition-colors">
                           {file.fileName}
                         </p>
                         <p className="text-[10px] text-slate-400">
@@ -166,20 +218,6 @@ const TaskDescription = ({ selectedTask }: TaskProps) => {
                         </p>
                       </div>
                     </div>
-                    {/* Action Download Indicator Glyph */}
-                    <svg
-                      className="h-3.5 w-3.5 text-slate-400 group-hover:text-indigo-500 shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v1M12 12V3m0 9l4-4m-4 4L8 8"
-                      />
-                    </svg>
                   </a>
                 ))}
               </div>
@@ -187,10 +225,9 @@ const TaskDescription = ({ selectedTask }: TaskProps) => {
           </div>
         </div>
 
-        {/* RIGHT COMPONENT: Jira Quick-Properties Panel Sidebar (4 Columns) */}
+        {/* RIGHT COMPONENT: Quick-Properties Panel Sidebar (4 Columns) */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
-            {/* Meta Property Attributes Matrix */}
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-2xs space-y-5">
             <div className="space-y-4">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
                 Details
@@ -220,7 +257,7 @@ const TaskDescription = ({ selectedTask }: TaskProps) => {
                 </span>
               </div>
 
-              {/* Assignee Selection Field */}
+              {/* Assignee Field */}
               <div className="flex items-center justify-between text-xs pt-1">
                 <span className="font-semibold text-slate-400 uppercase tracking-wide text-[10px]">
                   Assignee
@@ -249,7 +286,7 @@ const TaskDescription = ({ selectedTask }: TaskProps) => {
               </div>
             </div>
 
-            {/* Time Metrics Logs Grid */}
+            {/* Time Metrics Logs */}
             <div className="space-y-3 pt-4 border-t border-slate-100">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Dates & Deadlines
@@ -276,6 +313,66 @@ const TaskDescription = ({ selectedTask }: TaskProps) => {
           </div>
         </div>
       </div>
+
+      {/* Custom Tailwind Deletion Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 space-y-4 relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800">
+                  Delete Task
+                </h3>
+                <p className="text-xs text-slate-500">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-slate-800">
+                "{selectedTask.title}"
+              </span>
+              ? It will be permanently removed from this project.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="cursor-pointer rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={confirmDeleteTask}
+                className="cursor-pointer rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-500 shadow-2xs transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isDeleting ? "Deleting..." : "Delete Task"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -7,14 +7,10 @@ import TaskDescription from "../component/TaskDetailComponents/TaskDescription";
 import Navbar from "../component/Navbar";
 import Comments from "../component/TaskDetailComponents/Comments";
 import { getComments } from "../store/slices/commentSlice";
-import api from "../utils/api";
-import ActivityLogs from "../component/TaskDetailComponents/ActivityLogs";
 
 const TaskDetail = () => {
   const dispatch = useAppDispatch();
   const { taskId } = useParams();
-  const [activities, setActivities] = useState([]);
-  const [activityLoading, setActivityLoading] = useState(false);
 
   const { selectedTask, loading, error } = useAppSelector(
     (state) => state.task,
@@ -30,23 +26,6 @@ const TaskDetail = () => {
     }
   }, [dispatch, taskId]);
 
-  useEffect(() => {
-    const fetchActivities = async () => {
-      if (!selectedTask?.project?._id) return;
-      try {
-        setActivityLoading(true);
-        const res = await api.get(
-          `/activities/project/${selectedTask.project._id}`,
-        );
-        setActivities(res.data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setActivityLoading(false);
-      }
-    };
-    fetchActivities();
-  }, [selectedTask]);
 
   if (loading) {
     return (
@@ -126,9 +105,7 @@ const TaskDetail = () => {
           {/* 🛠️ UI CORRECTION: Activity blocks nested to follow the 8-column main container format */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-6">
-              {/* Activity Component Section */}
-              <ActivityLogs activities={activities} loading={activityLoading} />
-
+  
               {/* Comments Feed Section */}
               <Comments
                 taskId={taskId!}

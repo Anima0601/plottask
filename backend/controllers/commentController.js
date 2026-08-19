@@ -98,11 +98,35 @@ export const getComments = async (req, res) => {
 
     const project = await Project.findById(task.project);
 
+    if (!project) {
+      return res.status(404).json({
+        message: "Project not found",
+      });
+    }
+
+    // ADMIN can always view comments
+    if (req.user.role === "admin") {
+      const comments = await Comment.find({
+        task: req.params.id,
+      })
+        .populate("user", "name email role")
+        .sort({ createdAt: -1 });
+
+      return res.status(200).json({
+        success: true,
+        comments,
+      });
+    }
+
+    // Check project membership
     const isMember = project.member.some(
       (member) => member.toString() === req.user._id.toString(),
     );
 
-    if (!isMember) {
+    // Project creator can view comments
+    const isCreator = project.createdBy?.toString() === req.user._id.toString();
+
+    if (!isMember && !isCreator) {
       return res.status(403).json({
         message: "Access denied",
       });
@@ -119,6 +143,8 @@ export const getComments = async (req, res) => {
       comments,
     });
   } catch (error) {
+    console.error("GET COMMENTS ERROR:", error);
+
     res.status(500).json({
       message: error.message,
     });

@@ -4,10 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../store/hook";
 import { getUsers } from "../store/slices/userSlice";
 import { createProject } from "../store/slices/projectSlice";
+import { useToast } from "../context/ToastContext"; // Adjust path to ToastContext
 
 const CreateProject = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
 
   const { users, loading: usersLoading } = useAppSelector(
     (state) => state.user,
@@ -55,7 +57,10 @@ const CreateProject = () => {
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title.trim()) return;
+    if (!formData.title.trim()) {
+      toast("Project title is required", "warning");
+      return;
+    }
 
     try {
       const submissionData = new FormData();
@@ -80,8 +85,16 @@ const CreateProject = () => {
 
       await dispatch(createProject(submissionData)).unwrap();
 
-      navigate("/home");
+      toast("Project created successfully!", "success");
+
+      setTimeout(() => {
+        navigate("/home");
+      }, 800);
     } catch (error) {
+      toast(
+        typeof error === "string" ? error : "Failed to create project",
+        "error",
+      );
       console.error(error);
     }
   };
@@ -139,7 +152,7 @@ const CreateProject = () => {
                 />
               </div>
 
-              {/* Advanced Cloud Storage Drag-Drop Document Uploader Box */}
+              {/* Document Uploader Box */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   Project Assets & Attachments
@@ -173,7 +186,6 @@ const CreateProject = () => {
                     </p>
                   </div>
                 </div>
-                {/* Visual File Counter Feedback list */}
                 {files && files.length > 0 && (
                   <div className="mt-2 text-xs font-medium text-indigo-600 bg-indigo-50/60 border border-indigo-100 rounded-lg px-3 py-2 flex items-center gap-2">
                     📎 {files.length} staging items ready for initialization
@@ -191,7 +203,7 @@ const CreateProject = () => {
                 Operational Attributes
               </h3>
 
-              {/* Status Select Configuration Row */}
+              {/* Status Row */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
                   Status
@@ -208,7 +220,7 @@ const CreateProject = () => {
                 </select>
               </div>
 
-              {/* Priority Select Configuration Row */}
+              {/* Priority Row */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
                   Priority Matrix Tier
@@ -225,7 +237,7 @@ const CreateProject = () => {
                 </select>
               </div>
 
-              {/* Visibility Select Configuration Row */}
+              {/* Visibility Row */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
                   Visibility Bounds
@@ -242,7 +254,7 @@ const CreateProject = () => {
                 </select>
               </div>
 
-              {/* Calendar Bounds Row Mapping */}
+              {/* Calendar Bounds Row */}
               <div className="grid grid-cols-2 gap-4 pt-1">
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
@@ -270,7 +282,7 @@ const CreateProject = () => {
                 </div>
               </div>
 
-              {/* High-Fidelity Active Selection Panel for Team Members allocation */}
+              {/* Team Members Selection */}
               <div className="space-y-2 pt-2 border-t border-slate-100">
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
@@ -320,7 +332,6 @@ const CreateProject = () => {
                               </p>
                             </div>
                           </div>
-                          {/* Checked Icon status marker */}
                           {selected && (
                             <svg
                               className="h-4 w-4 text-indigo-600"
@@ -343,7 +354,7 @@ const CreateProject = () => {
                 </div>
               </div>
 
-              {/* Global Operation Cancel/Creation Actions Base Trigger Panel */}
+              {/* Action Buttons */}
               <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"

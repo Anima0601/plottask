@@ -158,15 +158,27 @@ export const getTaskById = async (req, res) => {
 export const updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
+
     if (!task) {
-      return res.status(404).json({ message: "Not Found" });
+      return res.status(404).json({
+        message: "Task not found",
+      });
     }
 
     const projectData = await Project.findById(task.project);
 
+    if (!projectData) {
+      return res.status(404).json({
+        message: "Project not found",
+      });
+    }
+
+    // Check new assignee
     if (
-      assignee &&
-      !projectData.member.some((member) => member.toString() === assignee)
+      req.body.assignee &&
+      !projectData.member.some(
+        (member) => member.toString() === req.body.assignee.toString(),
+      )
     ) {
       return res.status(400).json({
         message: "Assignee not part of project",
@@ -183,14 +195,17 @@ export const updateTask = async (req, res) => {
     const oldStatus = task.status;
     const oldAssignee = task.assignee?.toString();
 
+    // Update task fields
     Object.assign(task, req.body);
 
+    // Add new attachments
     if (uploadedFiles.length > 0) {
       task.attachments.push(...uploadedFiles);
     }
 
     await task.save();
 
+    // Activity log
     if (req.body.status && oldStatus !== task.status) {
       await logActivity({
         project: task.project,
@@ -206,7 +221,9 @@ export const updateTask = async (req, res) => {
         action: `Updated Task: ${task.title}`,
       });
     }
-    if (req.body.assignee && req.body.assignee !== oldAssignee) {
+
+    // Notify new assignee
+    if (req.body.assignee && req.body.assignee.toString() !== oldAssignee) {
       await Notification.create({
         user: req.body.assignee,
         project: task.project,
@@ -216,9 +233,18 @@ export const updateTask = async (req, res) => {
       });
     }
 
-    res.status(200).json(task);
+    const updatedTask = await Task.findById(task._id)
+      .populate("project", "title")
+      .populate("assignee", "name email")
+      .populate("createdBy", "name email");
+
+    res.status(200).json(updatedTask);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("UPDATE TASK ERROR:", error);
+
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 

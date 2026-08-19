@@ -157,12 +157,47 @@ export const getProjectById = async (req, res) => {
 export const updateProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
+
     if (!project) {
       return res.status(404).json({
         message: "Project not found",
       });
     }
 
+    const {
+      title,
+      description,
+      status,
+      priority,
+      startDate,
+      endDate,
+      visibility,
+      member,
+    } = req.body;
+
+    // Update normal project fields
+    if (title !== undefined) project.title = title;
+    if (description !== undefined) project.description = description;
+    if (status !== undefined) project.status = status;
+    if (priority !== undefined) project.priority = priority;
+    if (startDate !== undefined) project.startDate = startDate;
+    if (endDate !== undefined) project.endDate = endDate;
+    if (visibility !== undefined) project.visibility = visibility;
+
+    // Update members
+    if (member !== undefined) {
+      let members;
+
+      try {
+        members = JSON.parse(member);
+      } catch {
+        members = Array.isArray(member) ? member : [member];
+      }
+
+      project.member = members;
+    }
+
+    // New attachments
     const uploadedFiles =
       req.files?.map((file) => ({
         fileName: file.originalname,
@@ -170,87 +205,32 @@ export const updateProject = async (req, res) => {
         uploadedAt: new Date(),
       })) || [];
 
-    const oldStatus = project.status;
-    const oldPriority = project.priority;
-    const oldVisibility = project.visibility;
-    let isActivityLogged = false;
-
-    Object.assign(project, req.body);
-
     if (uploadedFiles.length > 0) {
       project.attachments.push(...uploadedFiles);
     }
 
     await project.save();
 
-    if (req.body.status && oldStatus !== project.status) {
-      await logActivity({
-        project: project._id,
-        user: req.user._id,
-        action: `Changed Project Status from ${oldStatus} to ${project.status}`,
-      });
-      isActivityLogged = true;
-      await Notification.insertMany(
-        project.member
-          .filter((memberId) => memberId.toString() !== req.user._id.toString())
-          .map((memberId) => ({
-            user: memberId,
-            project: project._id,
-            title: "Project Status Updated",
-            message: `${req.user.name} changed project status to "${project.status}"`,
-          })),
-      );
-    }
+    await logActivity({
+      project: project._id,
+      user: req.user._id,
+      action: `Updated Project: ${project.title}`,
+    });
 
-    if (req.body.priority && oldPriority !== project.priority) {
-      await logActivity({
-        project: project._id,
-        user: req.user._id,
-        action: `Changed Project Priority from ${oldPriority} to ${project.priority}`,
-      });
-      isActivityLogged = true;
-      await Notification.insertMany(
-        project.member
-          .filter((memberId) => memberId.toString() !== req.user._id.toString())
-          .map((memberId) => ({
-            user: memberId,
-            project: project._id,
-            title: "Project Priority Updated",
-            message: `${req.user.name} changed project priority to "${project.priority}"`,
-          })),
-      );
-    }
+    const updatedProject = await Project.findById(project._id).populate(
+      "member",
+      "name email role",
+    );
 
-    if (req.body.visibility && oldVisibility !== project.visibility) {
-      await logActivity({
-        project: project._id,
-        user: req.user._id,
-        action: `Changed Project Visibility from ${oldVisibility} to ${project.visibility}`,
-      });
-      isActivityLogged = true;
-      await Notification.insertMany(
-        project.member
-          .filter((memberId) => memberId.toString() !== req.user._id.toString())
-          .map((memberId) => ({
-            user: memberId,
-            project: project._id,
-            title: "Project Visibility Updated",
-            message: `${req.user.name} changed project visibility to "${project.visibility}"`,
-          })),
-      );
-    }
-
-    if (!isActivityLogged) {
-      await logActivity({
-        project: project._id,
-        user: req.user._id,
-        action: `Updated Project: ${project.title}`,
-      });
-    }
-
-    res.status(200).json(project);
+    return res.status(200).json({
+      success: true,
+      message: "Project updated successfully",
+      project: updatedProject,
+    });
   } catch (error) {
-    res.status(500).json({
+    console.error("UPDATE PROJECT ERROR:", error);
+
+    return res.status(500).json({
       message: error.message,
     });
   }
